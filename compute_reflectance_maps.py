@@ -25,8 +25,8 @@ def main():
 
     # imgs = [img / img.max() for img in images]
 
-    albedo = sdict["shape"]["bsdf"]["reflectance"]["value"][0]
-    P, Q = np.meshgrid(np.linspace(-1, 1, 100), np.linspace(-1, 1, 100), indexing="ij")
+    albedo = sdict["shape"]["bsdf"]["reflectance"]["value"]
+    P, Q = np.meshgrid(np.linspace(-1, 1, 100), np.linspace(-1, 1, 100), indexing="xy")
     pq = np.stack((P, Q), -1)
 
     maps = []
@@ -35,23 +35,29 @@ def main():
 
         light_pos = np.array(sdicts[idx]["emitter"]["position"])
         light_intensity = np.array(sdicts[idx]["emitter"]["intensity"]["value"])
-        r2 = np.dot(light_pos, light_pos)
+        r2 = np.dot(
+            light_pos, light_pos
+        )  # actually can only be constant if light is faaaaar away
         s = light_pos / light_pos[-1:]
         s /= np.linalg.norm(s)
 
         R = compute_reflectance_map(pq, albedo, light_intensity, r2, s)
         maps.append(R)
 
-    loc = [200, 200]
+    loc = [160, 250]
     intensities = [img[loc[1], loc[0]][0] for img in images]
+    print(intensities)
 
     fig, axs = plt.subplots(2, len(images) + 1)
 
     for idx, (img, r) in enumerate(zip(images, maps)):
         axs[1, idx].imshow(img)
+        axs[1, idx].scatter([loc[0]], [loc[1]], marker="o")
+
         # axs[0, idx].contourf(P, Q, r)
-        axs[0, idx].contour(P, Q, r)
+        axs[0, idx].imshow(r, extent=(-1, 1, 1, -1), origin="upper")
         axs[0, idx].contour(P, Q, r, levels=[intensities[idx]])
+
         axs[0, idx].set_aspect("equal")
         axs[1, idx].set_aspect("equal")
 
@@ -61,8 +67,6 @@ def main():
     axs[1, -1].set_aspect("equal")
 
     plt.show()
-
-    print(intensities)
 
     # fig, axs = plt.subplots(1, 2)
     # axs[0].imshow(images[0])
